@@ -2,8 +2,13 @@ import * as React from "react";
 import { Text, View, StyleSheet } from "react-native";
 import RegistrationScreen from "./screens/RegistrationScreen";
 import LoginScreen from "./screens/LoginScreen";
+import HomeScreen from "./screens/HomeScreen";
 import { firebase } from "./firebase/firebaseConfig";
 import { useState, useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+
+const Stack = createStackNavigator();
 
 export default function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -12,9 +17,12 @@ export default function App() {
     firebase.auth().onAuthStateChanged(function (user) {
       if (user) {
         // User is signed in.
+        console.log("checking sign-in");
         setIsSignedIn(true);
         setUserState(user);
-        console.log(`Signed In: ${userState.email} : ${isSignedIn}`);
+        if (isSignedIn) {
+          console.log(`Signed In: ${userState.email}: ${isSignedIn}`);
+        }
         /*firebase
           .auth()
           .signOut()
@@ -26,12 +34,40 @@ export default function App() {
           });*/
       } else {
         // No user is signed in.
+        setIsSignedIn(false);
         console.log("Not Logged-In");
       }
     });
   }, []);
 
-  return <LoginScreen />;
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        {isSignedIn ? (
+          // We haven't finished checking for the token yet
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ headerShown: false }}
+          />
+        ) : (
+          // User is signed in
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Register"
+              component={RegistrationScreen}
+              options={{ headerShown: false }}
+            />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 }
 
 const styles = StyleSheet.create({

@@ -7,6 +7,7 @@ import {
   View,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import Constants from "expo-constants";
 import { registerWithEmail, auth } from "../firebase/firebaseConfig";
@@ -16,10 +17,11 @@ export default function RegistrationScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setLoading] = useState(false);
 
   const onFooterLinkPress = () => {
     console.log("go to login page");
-    //navigation.navigate("Login");
+    navigation.navigate("Login");
   };
 
   const onRegisterPress = () => {
@@ -28,12 +30,15 @@ export default function RegistrationScreen({ navigation }) {
       alert("Passwords don't match.");
       return;
     }
+    setLoading(true);
     registerWithEmail(email, password)
       .then((userCredential) => {
+        setLoading(false);
         var user = userCredential.user;
         console.log(user);
       })
       .catch((error) => {
+        setLoading(false);
         alert(error);
       });
 
@@ -61,6 +66,13 @@ export default function RegistrationScreen({ navigation }) {
         alert(error);
       });*/
   };
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.horizontal]}>
+        <ActivityIndicator size="large" color="#00ff00" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -162,6 +174,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  horizontal: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 10,
   },
   footerView: {
     flex: 1,

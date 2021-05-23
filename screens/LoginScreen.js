@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   View,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
 import Constants from "expo-constants";
@@ -14,22 +15,34 @@ import { loginWithEmail } from "../firebase/firebaseConfig";
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setLoading] = useState(false);
 
   const onFooterLinkPress = () => {
-    console.log("go to Registration");
+    navigation.navigate("Register");
   };
 
   const onLoginPress = () => {
+    setLoading(true);
     console.log("Login pressed");
     loginWithEmail(email, password)
       .then((userCredential) => {
+        setLoading(false);
         var user = userCredential.user;
         console.log(`Signed In: ${user.email}`);
       })
       .catch((error) => {
+        setLoading(false);
         alert(error);
       });
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.horizontal]}>
+        <ActivityIndicator size="large" color="#00ff00" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -65,7 +78,7 @@ export default function LoginScreen({ navigation }) {
 
         <View style={styles.footerView}>
           <Text style={styles.footerText}>
-            Don't have an account?{" "}
+            Don't have an account ?{" "}
             <Text onPress={onFooterLinkPress} style={styles.footerLink}>
               Sign up
             </Text>
@@ -80,6 +93,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     paddingTop: Constants.statusBarHeight,
     backgroundColor: "#ecf0f1",
     padding: 8,
@@ -112,6 +126,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
+  },
+  horizontal: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 10,
   },
   buttonTitle: {
     color: "white",
