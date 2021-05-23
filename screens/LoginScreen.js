@@ -1,79 +1,45 @@
 import React, { useState } from "react";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
 import {
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
   StyleSheet,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
 import Constants from "expo-constants";
-import { registerWithEmail, auth } from "../firebase/firebaseConfig";
 
-export default function RegistrationScreen({ navigation }) {
-  const [fullName, setFullName] = useState("");
+import { loginWithEmail } from "../firebase/firebaseConfig";
+
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const onFooterLinkPress = () => {
-    console.log("go to login page");
-    //navigation.navigate("Login");
+    console.log("go to Registration");
   };
 
-  const onRegisterPress = () => {
-    console.log("ok");
-    if (password !== confirmPassword) {
-      alert("Passwords don't match.");
-      return;
-    }
-    registerWithEmail(email, password)
+  const onLoginPress = () => {
+    console.log("Login pressed");
+    loginWithEmail(email, password)
       .then((userCredential) => {
         var user = userCredential.user;
-        console.log(user);
+        console.log(`Signed In: ${user.email}`);
       })
       .catch((error) => {
         alert(error);
       });
-
-    /*auth
-      .createUserWithEmailAndPassword(email, password)
-      .then((response) => {
-        const uid = response.user.uid;
-        const data = {
-          id: uid,
-          email,
-          fullName,
-        };
-        const usersRef = firebase.firestore().collection("users");
-        usersRef
-          .doc(uid)
-          .set(data)
-          .then(() => {
-            navigation.navigate("Home", { user: data });
-          })
-          .catch((error) => {
-            alert(error);
-          });
-      })
-      .catch((error) => {
-        alert(error);
-      });*/
   };
 
   return (
     <View style={styles.container}>
-      <KeyboardAwareScrollView style={{ paddingTop: 100 }}>
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          placeholderTextColor="#aaaaaa"
-          onChangeText={(text) => setFullName(text)}
-          value={fullName}
-          underlineColorAndroid="transparent"
-          autoCapitalize="none"
-        />
+      <KeyboardAwareScrollView
+        style={{
+          flex: 1,
+          width: "100%",
+          paddingTop: 150,
+        }}
+      >
         <TextInput
           style={styles.input}
           placeholder="E-mail"
@@ -93,27 +59,15 @@ export default function RegistrationScreen({ navigation }) {
           underlineColorAndroid="transparent"
           autoCapitalize="none"
         />
-        <TextInput
-          style={styles.input}
-          placeholderTextColor="#aaaaaa"
-          secureTextEntry
-          placeholder="Confirm Password"
-          onChangeText={(text) => setConfirmPassword(text)}
-          value={confirmPassword}
-          underlineColorAndroid="transparent"
-          autoCapitalize="none"
-        />
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => onRegisterPress()}
-        >
-          <Text style={styles.buttonTitle}>Create account</Text>
+        <TouchableOpacity style={styles.button} onPress={() => onLoginPress()}>
+          <Text style={styles.buttonTitle}>Log in</Text>
         </TouchableOpacity>
+
         <View style={styles.footerView}>
           <Text style={styles.footerText}>
-            Already got an account ?{" "}
+            Don't have an account?{" "}
             <Text onPress={onFooterLinkPress} style={styles.footerLink}>
-              Log in
+              Sign up
             </Text>
           </Text>
         </View>
@@ -121,6 +75,7 @@ export default function RegistrationScreen({ navigation }) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
