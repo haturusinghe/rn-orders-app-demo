@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
-import Constants from "expo-constants";
 
 import { loginWithEmail } from "../firebase/firebaseConfig";
 
@@ -94,7 +93,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: Constants.statusBarHeight,
+    paddingTop: 8,
     backgroundColor: "#ecf0f1",
     padding: 8,
   },

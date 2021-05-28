@@ -9,8 +9,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import Constants from "expo-constants";
-import { registerWithEmail, auth } from "../firebase/firebaseConfig";
+
+import { registerWithEmail, db } from "../firebase/firebaseConfig";
 
 export default function RegistrationScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
@@ -35,7 +35,33 @@ export default function RegistrationScreen({ navigation }) {
       .then((userCredential) => {
         setLoading(false);
         var user = userCredential.user;
-        console.log(user);
+
+        user
+          .updateProfile({
+            displayName: fullName,
+          })
+          .then(function () {
+            console.log("Successfully created new user with Name");
+          })
+          .catch(function (error) {
+            alert(error);
+          });
+
+        db.collection("users")
+          .doc(user.uid)
+          .set({
+            name: fullName,
+            email: email,
+            isVendor: false,
+            isCustomer: true,
+            orders: [],
+          })
+          .then(() => {
+            console.log("Document written OK");
+          })
+          .catch((error) => {
+            console.error("Error adding document: ", error);
+          });
       })
       .catch((error) => {
         setLoading(false);
@@ -137,7 +163,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    paddingTop: Constants.statusBarHeight,
+    paddingTop: 8,
     backgroundColor: "#ecf0f1",
     padding: 8,
   },
