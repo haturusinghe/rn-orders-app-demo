@@ -11,6 +11,7 @@ import CurrentOrder from "../screens/CurrentOrder";
 import Header from "../Components/Header";
 
 import { createStackNavigator } from "@react-navigation/stack";
+import MyOrdersScreen from "./MyOrdersScreen";
 
 const Stack = createStackNavigator();
 
@@ -95,6 +96,11 @@ const HomeScreen = ({ navigation }) => {
         <Stack.Screen
           name="CurrentOrder"
           component={CurrentOrder}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MyOrders"
+          component={MyOrdersScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

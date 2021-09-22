@@ -24,8 +24,8 @@ const featuresData = [
     icon: icons.orders,
     color: COLORS.yellow,
     backgroundColor: COLORS.lightyellow,
-    description: "View Orders",
-    screen: "PlaceOrder",
+    description: "My Orders",
+    screen: "MyOrders",
   },
   {
     id: 3,
@@ -33,7 +33,7 @@ const featuresData = [
     color: COLORS.primary,
     backgroundColor: COLORS.lightGreen,
     description: "View Items",
-    screen: "CurrentOrder",
+    screen: "SelectItems",
   },
   {
     id: 4,
@@ -41,7 +41,7 @@ const featuresData = [
     color: COLORS.red,
     backgroundColor: COLORS.lightRed,
     description: "Contact Vendors",
-    screen: "PlaceOrder",
+    screen: "SelectItems",
   },
 ];
 

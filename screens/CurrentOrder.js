@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import Icon from "react-native-vector-icons/Ionicons";
 import IconAnt from "react-native-vector-icons/AntDesign";
+import IconMat from "react-native-vector-icons/MaterialCommunityIcons";
 import {
   SafeAreaView,
   View,
@@ -8,39 +9,114 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
+  Alert,
   StyleSheet,
   TextInput,
   TouchableHighlight,
+  KeyboardAvoidingView,
 } from "react-native";
 import { COLORS, SIZES, FONTS, icons, images } from "../constants";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
 import { ScrollView } from "react-native-gesture-handler";
+import { db, firebase } from "../firebase/firebaseConfig";
+import { useNavigation } from "@react-navigation/native";
 
-const selectedProductList = [
-  {
-    id: "1",
-    itemName: "Levothyroxine Sodium",
-    unitPrice: 115.91,
-    qty: 1,
-  },
-  {
-    id: "2",
-    itemName: "Hydrocodone Bitartrate and Acetaminophen",
-    unitPrice: 140.75,
-    qty: 1,
-  },
-  {
-    id: "3",
-    itemName: "bupivacaine hydrochloride",
-    unitPrice: 120.21,
-    qty: 1,
-  },
-];
+//Flat List header component
+const Header = ({ title }) => (
+  <View
+    style={{
+      marginTop: 20,
+      marginLeft: 8,
+      backgroundColor: "white",
+    }}
+  >
+    <Text
+      style={{
+        fontSize: 20,
+        fontFamily: "sans-serif",
+        textAlign: "left",
+      }}
+    >
+      {title}
+    </Text>
+  </View>
+);
 
-const CurrentOrder = () => {
-  const [selectedProducts, setSelectedProducts] = React.useState(
-    selectedProductList
-  );
+// const selectedProductList = [
+//   {
+//     id: "1",
+//     itemName: "Levothyroxine Sodium",
+//     unitPrice: 115.91,
+//     qty: 1,
+//   },
+//   {
+//     id: "2",
+//     itemName: "Hydrocodone Bitartrate and Acetaminophen",
+//     unitPrice: 140.75,
+//     qty: 1,
+//   },
+//   {
+//     id: "3",
+//     itemName: "bupivacaine hydrochloride",
+//     unitPrice: 120.21,
+//     qty: 1,
+//   },
+// ];
+
+const CurrentOrder = ({ route, navigation }) => {
+  const [selectedProducts, setSelectedProducts] = React.useState([]);
+  const [totalPrice, setTotalPrice] = React.useState(0);
+  const [totalQuantity, setTotalQuantity] = React.useState(0);
+  const [isSearch, setIsSearch] = React.useState(false);
+  const [beforeFilter, setBeforeFilter] = React.useState([]);
+
+  useEffect(() => {
+    console.log("Rendering Current Order/Checkout Page");
+    // console.log(route.params);
+    if (route.params.selectedProducts) {
+      setSelectedProducts(route.params.selectedProducts);
+    }
+    return () => {
+      console.log("Cleaning checkout page");
+      setSelectedProducts([]);
+    };
+  }, []);
+
+  useMemo(() => {
+    console.log("Running useMemo");
+    let currentQty = 0;
+    let currentPrice = 0;
+    if (selectedProducts.length > 0) {
+      selectedProducts.forEach((item) => {
+        currentQty = currentQty + item.qty;
+        currentPrice = currentPrice + item.qty * item.unitPrice;
+      });
+    }
+
+    setTotalPrice(Math.round(currentPrice * 100) / 100);
+    setTotalQuantity(currentQty);
+  }, [selectedProducts]);
+
+  //Filters item list when user enters text in Search Bar
+  const handleInputChange = (text) => {
+    if (!isSearch) {
+      setBeforeFilter(selectedProducts);
+      setIsSearch(true);
+      let newData = selectedProducts.filter((item) =>
+        item.itemName.toLowerCase().includes(text.toLowerCase())
+      );
+      setBeforeFilter(newData);
+    } else if (isSearch) {
+      if (text === "") {
+        setIsSearch(false);
+      } else {
+        let newData = selectedProducts.filter((item) =>
+          item.itemName.toLowerCase().includes(text.toLowerCase())
+        );
+        setBeforeFilter(newData);
+      }
+    }
+  };
 
   const separator = () => <View style={styles.line} />;
 
@@ -78,12 +154,61 @@ const CurrentOrder = () => {
       setSelectedProducts(newList);
     }
 
-    console.log(selectedProducts);
+    // console.log(selectedProducts);
+    // calcTotal(selectedProducts);
+  };
+  //Confirmation Dialog box
+  const confirmation = () => {
+    Alert.alert(
+      "Place Order ?",
+      `You have sure you want to place the order ?`,
+      [
+        {
+          text: "NO",
+          onPress: () => console.log("No Pressed"),
+          style: "cancel",
+        },
+        { text: "YES", onPress: () => placeOrder() },
+      ]
+    );
+  };
+
+  const placeOrder = () => {
+    let user = firebase.auth().currentUser;
+    let time = firebase.firestore.Timestamp.fromDate(new Date());
+    db.collection("orders")
+      .add({
+        order: selectedProducts,
+        createdByName: user.displayName,
+        userID: user.uid,
+        createdAt: time,
+      })
+      .then((documentRef) => {
+        alert("Success");
+        db.collection("users")
+          .doc(user.uid)
+          .collection("orders")
+          .add({
+            orderID: documentRef.id,
+            orderRef: db.doc(documentRef.path),
+            createdAt: time,
+          })
+          .then(() => {
+            console.log("Success creating order ref");
+          })
+          .catch((error) => {
+            console.log("Cant create order ref", error);
+          });
+        navigation.popToTop();
+      })
+      .catch((error) => {
+        console.error("Error writing document: ", error);
+        alert(error);
+      });
   };
 
   const renderListItem = ({ item }) => {
     let currVal = item.qty;
-    console.log(item.id, currVal);
     return (
       <View
         style={{
@@ -217,15 +342,16 @@ const CurrentOrder = () => {
           />
           <TextInput
             placeholder="Search Products ..."
+            onChangeText={(text) => handleInputChange(text)}
             underlineColorAndroid="transparent"
             style={{ width: "100%" }}
           />
         </View>
       </View>
 
-      <View>
+      <View style={{ flex: 1 }}>
         <FlatList
-          data={selectedProducts}
+          data={isSearch ? beforeFilter : selectedProducts}
           renderItem={renderListItem}
           keyExtractor={(item) => item.id}
           initialNumToRender={10}
@@ -233,35 +359,71 @@ const CurrentOrder = () => {
             backgroundColor: "#212121",
             borderRadius: 10,
             marginTop: 10,
-            paddingVertical: 10,
           }}
         />
+      </View>
+
+      <View
+        style={{
+          backgroundColor: "#212121",
+          height: 50,
+          marginVertical: 5,
+          borderRadius: 10,
+          minHeight: 75,
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingHorizontal: 10,
+          flexDirection: "row",
+        }}
+      >
+        <View>
+          <Text
+            style={{
+              color: "white",
+              width: 200,
+              fontFamily: "sans-serif-light",
+              paddingLeft: 15,
+              fontSize: 18,
+            }}
+          >
+            {`Total Quantity: ${totalQuantity}`}
+          </Text>
+          <Text
+            style={{
+              color: "white",
+              width: 200,
+              fontFamily: "sans-serif",
+              paddingLeft: 15,
+              fontSize: 18,
+            }}
+          >
+            {`Total Price: Rs.${totalPrice}`}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#F09926",
+            borderRadius: 50,
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "row",
+            marginVertical: 5,
+          }}
+          onPress={() => confirmation()}
+        >
+          <IconMat
+            style={{ padding: 12 }}
+            name="cart-arrow-right"
+            size={40}
+            color="white"
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 export default CurrentOrder;
-
-const Header = ({ title }) => (
-  <View
-    style={{
-      marginTop: 20,
-      marginLeft: 8,
-      backgroundColor: "white",
-    }}
-  >
-    <Text
-      style={{
-        fontSize: 20,
-        fontFamily: "sans-serif",
-        textAlign: "left",
-      }}
-    >
-      {title}
-    </Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: {
@@ -353,3 +515,16 @@ const styles = StyleSheet.create({
     color: "#424242",
   },
 });
+
+// const calcTotal = (selectedList) => {
+//   let currentQty = 0;
+//   let currentPrice = 0;
+//   if (selectedList.length > 0) {
+//     selectedList.forEach((item) => {
+//       currentQty = currentQty + item.qty;
+//       currentPrice = currentPrice + item.qty * item.unitPrice;
+//     });
+//   }
+//   setTotalPrice(currentPrice);
+//   setTotalQuantity(currentQty);
+// };

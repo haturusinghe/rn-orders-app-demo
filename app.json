@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Expo Firebase Starter",
-    "slug": "expo-firebase",
+    "name": "REP App",
+    "slug": "rep-app-miz",
     "privacy": "public",
     "platforms": ["ios", "android"],
     "version": "1.0.0",

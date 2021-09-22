@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Icon from "react-native-vector-icons/Ionicons";
 import IconAnt from "react-native-vector-icons/AntDesign";
 import {
-  SafeAreaView,
   View,
   Text,
   Image,
@@ -10,11 +9,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  TouchableHighlight,
+  Alert,
 } from "react-native";
 import { COLORS, SIZES, FONTS, icons, images } from "../constants";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scrollview";
 import { ScrollView } from "react-native-gesture-handler";
+import { db } from "../firebase/firebaseConfig";
 
 const productList = [
   {
@@ -89,14 +89,42 @@ const productList = [
   },
 ];
 
-const SelectItemsScreen = () => {
-  const [products, setProducts] = React.useState(productList);
+const countInit = { count: 0 };
+
+const SelectItemsScreen = ({ navigation }) => {
+  const [products, setProducts] = React.useState([]);
   const [selectedProducts, setSelectedProducts] = React.useState([]);
   const [count, setCount] = React.useState(0);
   const [searchText, setSearchText] = React.useState("");
 
-  const separator = () => <View style={styles.line} />;
+  useEffect(() => {
+    console.log("Rendering Items Page");
+    let recivedItems = [];
 
+    db.collection("items")
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          let docId = doc.id;
+          let { icon, itemName, selected, unitPrice } = doc.data();
+          // console.log(doc.id, " => ", doc.data());
+          console.log({ id: docId, icon, itemName, selected, unitPrice });
+          recivedItems.push({ id: docId, icon, itemName, selected, unitPrice });
+        });
+        setProducts(recivedItems);
+      })
+      .catch((error) => {
+        console.log("Error getting documents: ", error);
+      });
+    return () => {
+      console.log("Cleaning Items Page");
+      setSelectedProducts([]);
+      products.map((product) => (product.selected = false));
+    };
+  }, []);
+
+  //Filters item list when user enters text in Search Bar
   const handleInputChange = (text) => {
     if (text === "") {
       setProducts(productList);
@@ -108,6 +136,8 @@ const SelectItemsScreen = () => {
     }
   };
 
+  //Handles when user clicks on an item on the Flatlist and adds it to selected list
+  //Removes it from the selected list when its clicked on again
   const handleItemSelect = (item) => {
     let { id, itemName, unitPrice } = item;
     let newItem = { id: id, itemName: itemName, unitPrice, qty: 1 };
@@ -145,6 +175,49 @@ const SelectItemsScreen = () => {
     // console.log(selectedProducts);
   };
 
+  //Confirmation Dialog box
+  const confirmation = () => {
+    if (selectedProducts.length > 0) {
+      Alert.alert(
+        "Proceed to Checkout ?",
+        `You have selected ${count} items.\nDo you want to proceed ?`,
+        [
+          {
+            text: "NO",
+            onPress: () => console.log("No Pressed"),
+            style: "cancel",
+          },
+          { text: "YES", onPress: () => checkoutProceed() },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Please select atleast 1 item",
+        `You have selected ${0} items.\nSelect items to proceed`,
+        [
+          {
+            text: "OK",
+            onPress: () => console.log("OK Pressed"),
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  };
+
+  const checkoutProceed = () => {
+    if (selectedProducts.length > 0) {
+      console.log(selectedProducts);
+      navigation.navigate("Home", {
+        screen: "CurrentOrder",
+        params: { selectedProducts: selectedProducts },
+      });
+    } else {
+      alert("You have not selected any Items");
+    }
+  };
+
+  //Flat List header component
   const Header = ({ title }) => (
     <View
       style={{
@@ -165,17 +238,66 @@ const SelectItemsScreen = () => {
     </View>
   );
 
+  //Flat List Footer component
+  const Footer = ({ title }) => (
+    <View
+      style={{
+        marginTop: 20,
+        marginLeft: 8,
+        backgroundColor: "white",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 20,
+          fontFamily: "sans-serif",
+          textAlign: "left",
+        }}
+      >
+        {title}
+      </Text>
+    </View>
+  );
+
+  const headerWithSearch = (props) => (
+    <View>
+      <Text>Header with Search</Text>
+    </View>
+  );
+
+  //Function to render each flatlist item
   const renderItem = ({ item }) => {
+    //Sets background color accordingly if item is in the selected list or not
     let styleVar = item.selected
       ? { backgroundColor: "#79B101" }
       : { backgroundColor: "white" };
+
+    const headerTextStyle = {
+      color: "black",
+      width: 200,
+      fontFamily: "sans-serif-light",
+      paddingLeft: 15,
+      fontSize: 12,
+    };
+
     return (
       <TouchableOpacity
-        style={[styles.list, styleVar]}
+        style={[
+          {
+            paddingVertical: 20,
+            margin: 3,
+            flexDirection: "row",
+            justifyContent: "flex-start",
+            alignItems: "center",
+            borderRadius: 10,
+            zIndex: -1,
+          },
+          styleVar,
+        ]}
         onPress={() => handleItemSelect(item)}
       >
         <Image
-          source={icons.box}
+          source={{ uri: item.icon }}
           resizeMode="contain"
           style={{
             height: 40,
@@ -185,8 +307,8 @@ const SelectItemsScreen = () => {
           }}
         />
 
-        <Text style={styles.lightText}>{item.itemName}</Text>
-        <Text style={[styles.lightText, { fontFamily: "sans-serif" }]}>
+        <Text style={headerTextStyle}>{item.itemName}</Text>
+        <Text style={[headerTextStyle, { fontFamily: "sans-serif" }]}>
           {item.unitPrice}
         </Text>
       </TouchableOpacity>
@@ -220,7 +342,22 @@ const SelectItemsScreen = () => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.icon}>
+      <TouchableOpacity
+        onPress={() => confirmation()}
+        style={{
+          position: "absolute",
+          flexDirection: "row",
+          alignItems: "center",
+          padding: 10,
+          bottom: 20,
+          right: 0,
+          zIndex: 1,
+          backgroundColor: "white",
+          borderRadius: 50,
+          borderColor: "black",
+          borderWidth: 1,
+        }}
+      >
         <View
           style={{
             position: "absolute",
@@ -256,7 +393,7 @@ const SelectItemsScreen = () => {
         />
       </TouchableOpacity>
 
-      <View style={{}}>
+      <View>
         <FlatList
           data={products}
           renderItem={renderItem}
@@ -268,6 +405,20 @@ const SelectItemsScreen = () => {
     </View>
   );
 };
+
+const separator = () => (
+  <View
+    style={{
+      paddingVertical: 20,
+      margin: 3,
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      alignItems: "center",
+      borderRadius: 10,
+      zIndex: -1,
+    }}
+  />
+);
 
 export default SelectItemsScreen;
 
